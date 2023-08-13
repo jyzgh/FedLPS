@@ -9,10 +9,9 @@
 
 
 This repository is the official PyTorch implementation of:
-
 "FedLPS: Heterogeneous Federated Learning for Multiple Tasks with Local Parameter Sharing" (Submitted to AAAI 2024)
 
-<img src="./FedLPS.png" width = "80%" height = "" alt="FedLPS framwork." TITLE="Overview of FedLPS." />
+[//]: # (<img src="./FedLPS.png" width = "80%" height = "" alt="FedLPS framwork." TITLE="Overview of FedLPS." />)
 
 
 ## Abstract
