@@ -66,9 +66,9 @@ You can modify the arguments to run FedLPS on other settings. The arguments are 
 | Arguments              | Description                                                                                                                                                       |
 |------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `prefix`               | A prefix for logging and checkpoint saving.                                                                                                                       |
-| `model`                | Neural network used in training. Options: `resnet56_att`, `cnn_att`.                                                                                              |
+| `model`                | Neural network used in training. Options: `resnet18`, `shufflenet`, `pre_resnet18`, `pre_shufflenet`.                                                             |
 | `frozen_layer`         | Layer number 'n' of the encoder. Options: `1` (n=0.25N), `2`(n=0.5N), `3`(n=0.75N).                                                                               |
-| `dataset`              | Dataset used for training. Options: `mnist`, `cifar10`, `cifar100`.                                                                                               |
+| `dataset`              | Dataset used for training. Options: `mnist`, `fashionmnist`, `svhn`, `cifar10`, `cifar100`.                                                                       |
 | `partition_method`     | How to partition the dataset on local clients.  Options: `homo` (IID setting), `hetero` (non-IID setting).                                                        |
 | `partition_alpha`      | Partition alpha used in partition non-IID data.                                                                                                                   |
 | `pr_strategy`          | Pruning ratio used to prune local models. Options: `0` (without pruning), `0.1`, `0.2`, `0.3`, `0.4`, `0.5`, `0.6`, `0.7`, `0.8`, `0.9`, `AD` (adaptive pruning). |
