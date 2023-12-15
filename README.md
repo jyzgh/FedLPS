@@ -38,7 +38,7 @@ wandb off
 
 ## How to Run Codes?
 
-A simple demo for running FedLPS on non-IID setting of CIFAR10 dataset with ResNet56 model:
+A simple demo for running FedLPS on non-IID setting of CIFAR10 dataset with ResNet model:
 
 ```
 python ./fedml_experiments/standalone/fedlps/main_fedlps.py \
