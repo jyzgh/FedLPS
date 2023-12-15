@@ -1,10 +1,8 @@
 import logging
 import os
-
 import torch
 from torch import nn
 
-from fedml_api.model.cv import SCA
 
 try:
     from fedml_core.trainer.model_trainer import ModelTrainer
@@ -61,34 +59,17 @@ class MyModelTrainer(ModelTrainer):
                 # torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
 
                 optimizer.step()
-                # logging.info('Update Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                #     epoch, (batch_idx + 1) * args.batch_size, len(train_data) * args.batch_size,
-                #            100. * (batch_idx + 1) / len(train_data), loss.item()))
                 batch_loss.append(loss.item())
             epoch_loss.append(sum(batch_loss) / len(batch_loss))
             logging.info('Client Index = {}\tEpoch: {}\tLoss: {:.6f}'.format(
                 self.id, epoch, sum(epoch_loss) / len(epoch_loss)))
-
-        # # Print SCA info.
-        # if 'att' in args.model:
-        #     scale = SCA._get_scale()
-        #     print("scale len:", len(scale))
-        #     # print("Sum of scale:")
-        #     # print(scale)
-        #     print("scale:")
-        #     for s in scale:
-        #         print(s.tolist()[0:10])
-
 
     def test(self, test_data, device, args):
         model = self.model
 
         if args.dataparallel == 1:
             model = nn.DataParallel(model)
-        # else:
-        #     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
 
-        # model.to(device)
         model.cuda()
         model.eval()
 
@@ -103,8 +84,6 @@ class MyModelTrainer(ModelTrainer):
 
         with torch.no_grad():
             for batch_idx, (x, target) in enumerate(test_data):
-                # x = x.to(device)
-                # target = target.to(device)
                 x = x.cuda()
                 target = target.cuda()
                 pred = model(x)

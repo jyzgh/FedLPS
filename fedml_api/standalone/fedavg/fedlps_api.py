@@ -1,10 +1,8 @@
 import copy
 import logging
 logging.getLogger('PIL').setLevel(logging.WARNING)
-
 import random
 from collections import Counter
-
 import numpy as np
 import torch
 import torch.nn as nn
@@ -41,15 +39,8 @@ class FedLPSAPI(object):
         self.prune_strategy = args.pr_strategy
         self._ln_prune = self._ln_prune_r18
         self.prune_prob = {
-            # Origin model:
-            '0': [0, 0, 0, 0],        # Total params: 591,322  Total Flops: 90.32MFlops
+            '0': [0, 0, 0, 0],
             'AD': [0, 0, 0, 0],
-            'AD-same': [0, 0, 0, 0],  # All layers adopt the same pruning ratio.
-            # FedMP adopts identical pruning ratios for each layer.
-            # '0.1': [0.0, 0.2, 0.0],
-            # '0.3': [0.0, 0.2, 0.2],
-            # '0.5': [0.1, 0.3, 0.3],
-            # '0.7': [0.2, 0.4, 0.5],
             '0.1': [0.1, 0.1, 0.1, 0.1],
             '0.2': [0.2, 0.2, 0.2, 0.2],
             '0.3': [0.3, 0.3, 0.3, 0.3],
@@ -59,31 +50,6 @@ class FedLPSAPI(object):
             '0.7': [0.7, 0.7, 0.7, 0.7],
             '0.8': [0.8, 0.8, 0.8, 0.8],
             '0.9': [0.9, 0.9, 0.9, 0.9],
-            # Other options.
-            '001': [0.0, 0.0, 0.1],  #
-            '010': [0.0, 0.1, 0.0],  #
-            '011': [0.0, 0.1, 0.1],  #
-            '012': [0.0, 0.1, 0.2],  #
-            '020': [0.0, 0.2, 0.0],  #
-            '120': [0.1, 0.2, 0.0],  #
-            '122': [0.1, 0.2, 0.2],  #
-            '022': [0.0, 0.2, 0.2],  #
-            '024': [0.0, 0.2, 0.4],  #
-            '025': [0.0, 0.2, 0.5],  #
-            '026': [0.0, 0.2, 0.6],  #
-            '027': [0.0, 0.2, 0.7],  #
-            '033': [0.0, 0.3, 0.3],  #
-            '034': [0.0, 0.3, 0.4],  #
-            '035': [0.0, 0.3, 0.5],  #
-            '036': [0.0, 0.3, 0.6],  #
-            '131': [0.1, 0.3, 0.1],  #
-            '133': [0.1, 0.3, 0.3],  #
-            '223': [0.2, 0.2, 0.3],  #
-            '224': [0.2, 0.2, 0.4],  #
-            '225': [0.2, 0.2, 0.5],  #
-            '226': [0.2, 0.2, 0.6],  #
-            '235': [0.2, 0.3, 0.5],  #
-            '245': [0.2, 0.4, 0.5],  #
         }
         # self.ad_prob = ['0', '0.1', '0.3', '0.5', '0.7']
         self.ad_prob = ['0', '0.2', '0.4', '0.6', '0.8']
@@ -223,14 +189,11 @@ class FedLPSAPI(object):
                             self.prune_prob['AD'] = self.prune_prob[pr_strategy]  # copy pruning ratios for layers
                         else:
                             pr_prob = self.prune_prob[self.prune_strategy]  # get pruning ratios for layers
-                        # if idx % len(self.ad_prob):
                         pr_model = self._ln_prune(pr_model, pr_prob, remove=0)
                         w = pr_model.state_dict()
                         logging.info("L1 pruning on client %s, prune strategy %s: %s" %
                                      (str(client_idx), self.prune_strategy, pr_prob))
                         is_pruned.append(1)
-
-
 
                 # store pruned models
                 w_locals.append((client.get_sample_number(), w))
@@ -259,13 +222,11 @@ class FedLPSAPI(object):
         # corresponding stages: {0, 2, 3, 4, conv5.0} (not break InvertedResidual block)
         frozen_modules = [0, 55, 149, 199, 203] # index: layer_num; value: frozen modules until this layer_num.
         for idx, m in enumerate(model.named_modules()):
-            # print(idx, "-- ", m[0])
             if idx <= 1: # 0 -- squeezenet, 1 -- conv1(this is a nn.Sequential, not a conv layer)
                 continue
             if idx <= frozen_modules[layer_num]:
                 if isinstance(m[1], (nn.Conv2d, nn.BatchNorm2d, nn.Linear)):
                     m[1].requires_grad_(False)
-                    # print("freeze:", m[0])
         return model
 
     def _freeze_layers_mbnet(self, layer_num, model):
@@ -277,13 +238,11 @@ class FedLPSAPI(object):
         #corresponding features: {0, 5, 9, avgpool, classifier.2} (not break InvertedResidual block)
         frozen_modules = [0, 83, 155, 196, 200] # index: layer_num; value: frozen modules until this layer_num.
         for idx, m in enumerate(model.named_modules()):
-            # print(idx, "-- ", m[0])
             if idx <= 1: # 0 -- squeezenet, 1 -- features
                 continue
             if idx <= frozen_modules[layer_num]:
                 if isinstance(m[1], (nn.Conv2d, nn.BatchNorm2d, nn.Linear)):
                     m[1].requires_grad_(False)
-                    # print("freeze:", m[0])
         return model
 
     def _freeze_layers_sqnet(self, layer_num, model):
@@ -299,7 +258,6 @@ class FedLPSAPI(object):
                 continue
             if idx <= frozen_modules[layer_num]:
                 m[1].requires_grad_(False)
-                # print("freeze:", m[0])
             idx += 1
         return model
 
@@ -307,11 +265,6 @@ class FedLPSAPI(object):
         if layer_num == 0:
             return model
         if layer_num == 1:
-            # idx = 0
-            # for name, m in enumerate(model.named_modules()):
-            #     print(idx, "-- ", m[0])
-            #     idx += 1
-            # idx = 0
             for name, child in model.named_children():
                 if "layer2" not in name:
                     for param in child.parameters():
@@ -373,15 +326,12 @@ class FedLPSAPI(object):
                     torch_prune.ln_structured(m[1], name="weight", amount=pr_prob[0], n=1, dim=1)
                     torch_prune.ln_structured(m[1], name="weight", amount=pr_prob[0], n=1, dim=0)
                 prune_count += 1
-                # print("prune:", m[0])
 
             elif isinstance(m[1], nn.BatchNorm2d):
                 if "conv1" in m[0]:
                     # The first BN layer in sfnet.
                     continue
                 torch_prune.l1_unstructured(m[1], name="weight", amount=pr_prob[0])
-                # prune_count += 1
-                # print("prune:", m[0])
 
             elif isinstance(m[1], nn.Linear):
                 if prune_count == 0:  # 1st layer in un-pruned sub-model.
@@ -394,13 +344,11 @@ class FedLPSAPI(object):
                 elif m[0] == "fc":  # last fc layer.
                     torch_prune.ln_structured(m[1], name="weight", amount=pr_prob[-1], n=1, dim=1)
                     prune_count += 1
-                    # print("prune:", m[0])
                     break
                 else:  # other fc layers.
                     torch_prune.ln_structured(m[1], name="weight", amount=pr_prob[-1], n=1, dim=1)
                     torch_prune.ln_structured(m[1], name="weight", amount=pr_prob[-1], n=1, dim=0)
                     prune_count += 1
-                # print("prune:", m[0])
 
         # stat(glb_model, (3, 28, 28))
         # print(list(glb_model.named_buffers()))
@@ -434,12 +382,9 @@ class FedLPSAPI(object):
                     torch_prune.ln_structured(m[1], name="weight", amount=pr_prob[0], n=1, dim=1)
                     torch_prune.ln_structured(m[1], name="weight", amount=pr_prob[0], n=1, dim=0)
                 prune_count += 1
-                # print("prune:", m[0])
 
             elif isinstance(m[1], nn.BatchNorm2d):
                 torch_prune.l1_unstructured(m[1], name="weight", amount=pr_prob[0])
-                # prune_count += 1
-                # print("prune:", m[0])
 
             elif isinstance(m[1], nn.Linear):
                 if prune_count == 0:  # 1st layer in un-pruned sub-model.
@@ -452,13 +397,11 @@ class FedLPSAPI(object):
                 elif m[0] == "classifier.3":  # last fc layer.
                     torch_prune.ln_structured(m[1], name="weight", amount=pr_prob[-1], n=1, dim=1)
                     prune_count += 1
-                    # print("prune:", m[0])
                     break
                 else:  # other fc layers.
                     torch_prune.ln_structured(m[1], name="weight", amount=pr_prob[-1], n=1, dim=1)
                     torch_prune.ln_structured(m[1], name="weight", amount=pr_prob[-1], n=1, dim=0)
                     prune_count += 1
-                # print("prune:", m[0])
 
         # stat(glb_model, (3, 28, 28))
         # print(list(glb_model.named_buffers()))
@@ -596,28 +539,21 @@ class FedLPSAPI(object):
                     # Pruning 'out_planes'.
                     torch_prune.l1_unstructured(module, name="weight", amount=pr_prob[0])
                 elif conv_count <= 6:  # Stage1's other bn layers.
-                    # torch_prune.ln_structured(module, name="weight", amount=pr_prob[0], n=2, dim=1)
                     torch_prune.l1_unstructured(module, name="weight", amount=pr_prob[0])
 
                 elif conv_count == 7:  # Stage2's 1st conv layer.
-                    # torch_prune.ln_structured(module, name="weight", amount=pr_prob[0], n=2, dim=1)
                     torch_prune.l1_unstructured(module, name="weight", amount=pr_prob[1])
                 elif conv_count <= 11:  # Stage2's other conv layers.
-                    # torch_prune.ln_structured(module, name="weight", amount=pr_prob[1], n=2, dim=1)
                     torch_prune.l1_unstructured(module, name="weight", amount=pr_prob[1])
 
                 elif conv_count == 12:  # Stage3's 1st conv layer.
-                    # torch_prune.ln_structured(module, name="weight", amount=pr_prob[1], n=2, dim=1)
                     torch_prune.l1_unstructured(module, name="weight", amount=pr_prob[2])
                 elif conv_count <= 16:  # Stage3's other conv layers.
-                    # torch_prune.ln_structured(module, name="weight", amount=pr_prob[2], n=2, dim=1)
                     torch_prune.l1_unstructured(module, name="weight", amount=pr_prob[2])
 
                 elif conv_count == 17:  # Stage4's 1st conv layer.
-                    # torch_prune.ln_structured(module, name="weight", amount=pr_prob[1], n=2, dim=1)
                     torch_prune.l1_unstructured(module, name="weight", amount=pr_prob[2])
                 elif conv_count <= 21:  # Stage4's other conv layers.
-                    # torch_prune.ln_structured(module, name="weight", amount=pr_prob[2], n=2, dim=1)
                     torch_prune.l1_unstructured(module, name="weight", amount=pr_prob[2])
 
             elif isinstance(module, nn.Linear) and self.args.freeze_layer != 4:
@@ -628,13 +564,10 @@ class FedLPSAPI(object):
         return glb_model
 
     def _ln_prune_r56(self, glb_model, pr_prob, remove=0):
-        # layer_id_in_cfg = 0
         conv_count = 0
         down_count = 0
         for name, module in glb_model.named_modules():
             # Remove the pruning.
-            # if torch_prune.is_pruned(module):
-            #     torch_prune.remove(module, 'weight')
             if isinstance(module, nn.Conv2d):
                 if conv_count == 0:  # The first conv layer in resnet.
                     conv_count += 1
@@ -648,8 +581,6 @@ class FedLPSAPI(object):
                         if remove:
                             torch_prune.remove(module, 'weight')
                         down_count += 1
-                        # print("Prune Conv %s in downsample--%s(in_planes):" % (conv_count, name0))
-                        # print('Kept channels:', idx.tolist(), '\nlens:', len(idx.tolist()))
                     else:  # The other downsample conv layer.
                         # Use the pruning probability in last stage(pr_prob[down_count-1]) to prune 'in_planes'(dim=1),
                         # and the pruning probability in this stage(pr_prob[down_count]) to prune 'out_planes'(dim=0).
@@ -658,8 +589,6 @@ class FedLPSAPI(object):
                         if remove:
                             torch_prune.remove(module, 'weight')
                         down_count += 1
-                        # print("Prune Conv %s in downsample--%s(out_planes):" % (conv_count, name0))
-                        # print('Kept channels:', idx.tolist(), '\nlens:', len(idx.tolist()))
                     conv_count += 1
                     continue
 
@@ -674,8 +603,6 @@ class FedLPSAPI(object):
                         torch_prune.ln_structured(module, name="weight", amount=pr_prob[0], n=1, dim=0)
                         if remove:
                             torch_prune.remove(module, 'weight')
-                        # print("Prune Conv %s, layer_id_in_cf-%s--%s(in_planes):" % (conv_count, layer_id_in_cfg-1, name0))
-                        # print('Kept channels:', idx.tolist(), '\nlens:', len(idx.tolist()))
 
                     elif conv_count == 20:  # Stage2's 1st conv layer.
                         torch_prune.ln_structured(module, name="weight", amount=pr_prob[0], n=1, dim=1)
@@ -698,11 +625,7 @@ class FedLPSAPI(object):
                         torch_prune.ln_structured(module, name="weight", amount=pr_prob[2], n=1, dim=0)
                         if remove:
                             torch_prune.remove(module, 'weight')
-                        # print("Prune Conv %s, layer_id_in_cf-%s--%s(out_planes):"
-                        #       % (conv_count, layer_id_in_cfg, name0))
-                        # print('Kept channels:', idx.tolist(), '\nlens:', len(idx.tolist()))
 
-                    # layer_id_in_cfg += 1
                     conv_count += 1
                     continue
 
@@ -710,38 +633,30 @@ class FedLPSAPI(object):
                 # 'conv_count' in nn.BatchNorm2d is 1 bigger than nn.Conv2d.
                 if conv_count == 1:  # The 1st bn in resnet.
                     pass
-                    # print("Copy BN %s--%s:" % (conv_count - 1, name0))
                 if conv_count == 2:  # Stage1's 1st bn layer.
                     # Pruning 'out_planes'.
                     torch_prune.l1_unstructured(module, name="weight", amount=pr_prob[0])
                     if remove:
                         torch_prune.remove(module, 'weight')
                 elif conv_count <= 20:  # Stage1's other bn layers.
-                    # torch_prune.ln_structured(module, name="weight", amount=pr_prob[0], n=2, dim=1)
                     torch_prune.l1_unstructured(module, name="weight", amount=pr_prob[0])
                     if remove:
                         torch_prune.remove(module, 'weight')
-                    # print("Prune Conv %s, layer_id_in_cf-%s--%s(in_planes):" % (conv_count, layer_id_in_cfg-1, name0))
-                    # print('Kept channels:', idx.tolist(), '\nlens:', len(idx.tolist()))
 
                 elif conv_count == 21:  # Stage2's 1st conv layer.
-                    # torch_prune.ln_structured(module, name="weight", amount=pr_prob[0], n=2, dim=1)
                     torch_prune.l1_unstructured(module, name="weight", amount=pr_prob[1])
                     if remove:
                         torch_prune.remove(module, 'weight')
                 elif conv_count <= 39:  # Stage2's other conv layers.
-                    # torch_prune.ln_structured(module, name="weight", amount=pr_prob[1], n=2, dim=1)
                     torch_prune.l1_unstructured(module, name="weight", amount=pr_prob[1])
                     if remove:
                         torch_prune.remove(module, 'weight')
 
                 elif conv_count == 40:  # Stage3's 1st conv layer.
-                    # torch_prune.ln_structured(module, name="weight", amount=pr_prob[1], n=2, dim=1)
                     torch_prune.l1_unstructured(module, name="weight", amount=pr_prob[2])
                     if remove:
                         torch_prune.remove(module, 'weight')
                 elif conv_count <= 58:  # Stage3's other conv layers.
-                    # torch_prune.ln_structured(module, name="weight", amount=pr_prob[2], n=2, dim=1)
                     torch_prune.l1_unstructured(module, name="weight", amount=pr_prob[2])
                     if remove:
                         torch_prune.remove(module, 'weight')
@@ -750,8 +665,6 @@ class FedLPSAPI(object):
                 torch_prune.ln_structured(module, name="weight", amount=pr_prob[-1], n=2, dim=1)
                 if remove:
                     torch_prune.remove(module, 'weight')
-                # print("Prune Linear %s--%s(in_planes):" % (conv_count, name0))
-                # print('Kept channels:', idx.tolist(), '\nlens:', len(idx.tolist()))
 
         # stat(glb_model, (3, 28, 28))
         # print(list(glb_model.named_buffers()))
@@ -765,7 +678,6 @@ class FedLPSAPI(object):
 
         (sample_num, averaged_params) = w_locals[0]
         for k in averaged_params.keys():
-            # if 'orig' in k or 'mask' in k:
             if 'mask' in k:
                 continue
             for i in range(0, len(w_locals)):
@@ -815,14 +727,11 @@ class FedLPSAPI(object):
                                         self.test_data_local_dict[client_idx],
                                         self.train_data_local_num_dict[client_idx])
 
-            # Model can not converge if test on "models_prune".
             if self.args.local_test:
                 test_idx = client_idx % self.args.client_num_per_round
                 self.model_trainer.set_model(models_prune[test_idx])
                 params = copy.deepcopy(models_prune[test_idx].state_dict())  # params = models_prune[test_idx].state_dict()
                 self.model_trainer.set_model_params(params)
-            # else:
-            #     self.model_trainer.set_model_params(w_global)
 
             # train data
             train_local_metrics = client.local_test(False)
